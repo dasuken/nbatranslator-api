@@ -1,0 +1,128 @@
+service: nba-translator
+
+frameworkVersion: '>=1.28.0 <2.0.0'
+
+plugins:
+  - serverless-dynamodb-local
+  - serverless-dotenv-plugin
+
+custom:
+  project_name: nba-translater
+  defaultStage: dev
+  dynamo_table_comment: translate_comments_${self:provider.stage}
+  dynamo_table_post: translate_posts_${self:provider.stage}
+  # for local test
+  dynamodb:
+    stages:
+      - dev
+    start:
+      port: 8000
+      inMemory: true
+      migrate: true
+      seed: true
+    seed:
+      development:
+        sources:
+          - table: translate_posts_dev
+            sources: [./post.json]
+          - table: translate_comments_dev
+            sources: [./comment.json]
+
+provider:
+  name: aws
+  runtime: go1.x
+  profile: dasuken_admin
+  region: ap-northeast-1
+  stage: ${opt:stage, self:custom.defaultStage}
+  iamRoleStatements:
+    - Effect: "Allow"
+      Action:
+        - "dynamodb:*"
+      Resource: "*"
+    - Effect: Allow
+      Action:
+        - "logs:*"
+      Resource: "*"
+    - Effect: Allow
+      Action:
+        - "translate:*"
+      Resource: "*"
+
+package:
+  exclude:
+    - ./**
+  include:
+    - ./bin/**
+
+functions:
+  translatePost:
+    handler: bin/translate_post
+    environment:
+      DEEPL_SECRET: ${env:DEEPL_SECRET}
+      DYNAMO_TABLE_POST: ${self:custom.dynamo_table_post}
+    name: ${self:custom.project_name}-translatePost-${self:provider.stage}
+    events:
+      - httpApi:
+          path: /posts/translate
+          method: post
+          cors: true
+  translateComment:
+    handler: bin/translate_comment
+    name: ${self:custom.project_name}-translateComment-${self:provider.stage}
+    environment:
+      DYNAMO_TABLE_COMMENT: ${self:custom.dynamo_table_comment}
+    events:
+      - httpApi:
+          path: /comments/translate
+          method: post
+          cors: true
+  getPosts:
+    handler: bin/get_posts
+    name: ${self:custom.project_name}-getPosts-${self:provider.stage}
+    events:
+      - httpApi:
+          path: /posts
+          method: get
+          cors: true
+  getPostComments:
+    handler: bin/get_post_comments
+    name: ${self:custom.project_name}-getPostComments-${self:provider.stage}
+    events:
+      - httpApi:
+          path: /post
+          method: get
+          cors: true
+
+resources:
+  Resources:
+    postTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:custom.dynamo_table_post}
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+
+    commentTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:custom.dynamo_table_comment}
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+          - AttributeName: post_id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+          - AttributeName: post_id
+            KeyType: RANGE
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
