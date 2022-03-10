@@ -14,18 +14,18 @@ custom:
   # for local test
   dynamodb:
     stages:
-      - dev
+      - test
     start:
       port: 8000
       inMemory: true
       migrate: true
       seed: true
     seed:
-      development:
+      test:
         sources:
-          - table: translate_posts_dev
+          - table: translate_posts_test
             sources: [./post.json]
-          - table: translate_comments_dev
+          - table: translate_comments_test
             sources: [./comment.json]
 
 provider:

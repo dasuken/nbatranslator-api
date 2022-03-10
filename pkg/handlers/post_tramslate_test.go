@@ -11,7 +11,7 @@ import (
 func Test_TranslatePost(t *testing.T) {
 	// req events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error
 	body := map[string]interface{}{
-		"id": "testid5",
+		"id": "testid1",
 		"body": "hello",
 		"title": "world",
 	}

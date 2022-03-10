@@ -17,4 +17,7 @@ deploy-prd: clean build
 	sls deploy --verbose --stage="prd"
 
 dynamo-local:
-	sls dynamodb start
+	sls dynamodb start --stage="test"
+
+dynamo-admin:
+	npx dynamodb-admin
