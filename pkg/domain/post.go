@@ -1,4 +1,4 @@
-package post
+package domain
 
 import (
 	"context"
@@ -18,7 +18,13 @@ type Option struct {
 	Limit int
 }
 
-func FetchAll(subreddit string, option Option) ([]*reddit.Post, error) {
+type Post struct {
+	*reddit.Post
+	body_ja string
+	title_ja string
+}
+
+func GetPostList(subreddit string, option Option) ([]*Post, error) {
 	if subreddit == "" {
 		return nil, errors.New(ErrorSubredditNotExist)
 	}
@@ -27,18 +33,24 @@ func FetchAll(subreddit string, option Option) ([]*reddit.Post, error) {
 		option.Limit = defaultPostsLimit
 	}
 
-	posts, _, err := reddit.DefaultClient().Subreddit.NewPosts(context.Background(), subreddit, &reddit.ListOptions{
+	rawPosts, _, err := reddit.DefaultClient().Subreddit.NewPosts(context.Background(), subreddit, &reddit.ListOptions{
 		Limit: option.Limit,
 	})
-
 	if err != nil {
-		return nil, fmt.Errorf("error message: %v, received values: %v", err, posts)
+		return nil, fmt.Errorf("error message: %v, received values: %v", err, rawPosts)
+	}
+
+	posts := make([]*Post, len(rawPosts))
+	for i, post := range rawPosts {
+		posts[i] = &Post{
+			Post: post,
+		}
 	}
 
 	return posts, nil
 }
 
-func FetchOne(postID string) (*reddit.PostAndComments, error) {
+func GetPostByID(postID string) (*reddit.PostAndComments, error) {
 	postComments, _, err := reddit.DefaultClient().Post.Get(context.Background(), postID)
 	if err != nil {
 		return nil, err

@@ -1,10 +1,10 @@
-package handlers
+package applications
 
 import (
 	"encoding/json"
 	"github.com/aws/aws-lambda-go/events"
-	"github.com/dasuken/wizards-client/api/pkg/db"
-	"github.com/dasuken/wizards-client/api/pkg/translator"
+	"github.com/dasuken/wizards-client/api/pkg/infra/persistence"
+	"github.com/dasuken/wizards-client/api/pkg/infra/translator"
 	"log"
 	"net/http"
 	"os"
@@ -33,7 +33,7 @@ func TranslatePost(req events.APIGatewayProxyRequest) (*events.APIGatewayProxyRe
 	if len(postTableName) == 0 {
 		return ResponseError(http.StatusInternalServerError, "$DYNAMO_TABLE_POST is empty")
 	}
-	postTable, err := db.NewPostTable(db.DefaultDynamoClient, postTableName)
+	postTable, err := persistence.NewPostTable(persistence.DefaultDynamoClient, postTableName)
 	if err != nil {
 		log.Printf("%+v\n", err)
 		return ResponseError(500, ErrorCouldNotConnectDB)
@@ -66,7 +66,7 @@ func TranslatePost(req events.APIGatewayProxyRequest) (*events.APIGatewayProxyRe
 			}
 		}
 
-		err = postTable.PutOne(&db.PostJAInfo{
+		err = postTable.PutOne(&persistence.PostJAInfo{
 			ID:      response.ID,
 			BodyJA:  response.BodyJA,
 			TitleJA: response.TitleJA,

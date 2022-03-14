@@ -1,10 +1,10 @@
-package handlers
+package applications
 
 import (
 	"encoding/json"
 	"github.com/aws/aws-lambda-go/events"
-	"github.com/dasuken/wizards-client/api/pkg/db"
-	"github.com/dasuken/wizards-client/api/pkg/translator"
+	"github.com/dasuken/wizards-client/api/pkg/infra/persistence"
+	"github.com/dasuken/wizards-client/api/pkg/infra/translator"
 	"log"
 	"net/http"
 	"os"
@@ -41,7 +41,7 @@ func TranslateComment(req events.APIGatewayProxyRequest) (*events.APIGatewayProx
 	if len(commentTableName) == 0 {
 		return ResponseError(http.StatusInternalServerError, "$DYNAMO_TABLE_COMMENT is empty")
 	}
-	commentTable, err := db.NewCommentTable(db.DefaultDynamoClient, commentTableName)
+	commentTable, err := persistence.NewCommentTable(persistence.DefaultDynamoClient, commentTableName)
 	if err != nil {
 		log.Printf("%+v\n", err)
 		return ResponseError(500, ErrorCouldNotConnectDB)
@@ -63,7 +63,7 @@ func TranslateComment(req events.APIGatewayProxyRequest) (*events.APIGatewayProx
 			}
 		}
 
-		err = commentTable.PutOne(&db.CommentJAInfo{
+		err = commentTable.PutOne(&persistence.CommentJAInfo{
 			ID:      response.ID,
 			PostID:  response.PostID,
 			BodyJA:  response.BodyJA,

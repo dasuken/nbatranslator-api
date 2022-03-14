@@ -64,3 +64,16 @@
  * guregu/dynamodb 構造体にマッピングできない！！！！
     - 応急処置でmap[string]string噛ませてる
     - 根本原因はあとで探す
+    
+ # アーキテクチャ参考
+pospome サーバーレイアウト
+* applicationからinfra直接依存する形
+ 
+https://buildersbox.corp-sansan.com/entry/2019/07/10/110000
+* より具体的。applicationがpersistense, 外部api、domain3点に依存している形
+
+# 抽象化手法
+* Facade
+ちょっと把握仕切れてない
+
+* Decorator
