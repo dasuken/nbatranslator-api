@@ -6,7 +6,6 @@ import (
 
 type Post struct {
 	*go_reddit.Post
-	body_ja string
-	title_ja string
+	BodyJA  string `json:"body_ja"`
+	TitleJA string `json:"title_ja"`
 }
-
