@@ -1,11 +1,9 @@
 package domain
 
-import (
-	go_reddit "github.com/caarlos0/go-reddit/v3/reddit"
-)
-
 type Post struct {
-	*go_reddit.Post
+	ID      string `json:"id"`
+	Body    string `json:"body"`
+	Title   string `json:"title"`
 	BodyJA  string `json:"body_ja"`
 	TitleJA string `json:"title_ja"`
 }

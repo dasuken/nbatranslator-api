@@ -3,6 +3,7 @@ package applications
 import (
 	"encoding/json"
 	"github.com/aws/aws-lambda-go/events"
+	"github.com/dasuken/wizards-client/api/pkg/domain"
 	"github.com/dasuken/wizards-client/api/pkg/infra/persistence"
 	"github.com/dasuken/wizards-client/api/pkg/infra/translator"
 	"log"
@@ -10,30 +11,18 @@ import (
 	"os"
 )
 
-type RequestTranslateComment struct {
-	ID    string `json:"id"`
-	PostID    string `json:"post_id"`
-	Body  string `json:"body"`
-}
-
-type ResponseTranslateComment struct {
-	ID      string `json:"id"`
-	PostID  string `json:"post_id"`
-	BodyJA  string `json:"body_ja"`
-}
-
 func TranslateComment(req events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
-	var request *RequestTranslateComment
-	if err := json.Unmarshal([]byte(req.Body), &request); err != nil {
+	var comment domain.Comment
+	if err := json.Unmarshal([]byte(req.Body), &comment); err != nil {
 		log.Printf("%+v\n", err)
 		return ResponseError(404, ErrorFailedToUnmarshal)
 	}
 
-	if len(request.ID) == 0 {
+	if len(comment.ID) == 0 {
 		return ResponseError(http.StatusBadRequest, ErrorCouldNotEmptyID)
 	}
 
-	if len(request.PostID) == 0 {
+	if len(comment.PostID) == 0 {
 		return ResponseError(http.StatusBadRequest, ErrorCouldNotEmptyPostID)
 	}
 
@@ -46,34 +35,30 @@ func TranslateComment(req events.APIGatewayProxyRequest) (*events.APIGatewayProx
 		log.Printf("%+v\n", err)
 		return ResponseError(500, ErrorCouldNotConnectDB)
 	}
-
-	var response ResponseTranslateComment
-	commentInfo, err := commentTable.GetByID(request.ID, request.PostID)
-	log.Printf("GetByID(%s), commentInfo: %v, err: %v", request.ID, commentInfo, err)
+	commentInfo, err := commentTable.GetByID(comment.ID, comment.PostID)
+	log.Printf("GetByID(%s), commentInfo: %v, err: %v", comment.ID, commentInfo, err)
 
 	// if record not found, translate and put item
 	if len(commentInfo.ID) == 0 {
 		trs := translator.New(translator.DefaultAwsClient)
-		response.ID = request.ID
-		response.PostID = request.PostID
-		if len(request.Body) < 1000 {
-			response.BodyJA, err = trs.Do(request.Body)
+		if len(comment.Body) < 1000 {
+			comment.BodyJA, err = trs.Do(comment.Body)
 			if err != nil {
 				log.Printf("%+v\n", err)
 			}
 		}
 
 		err = commentTable.PutOne(&persistence.CommentJAInfo{
-			ID:      response.ID,
-			PostID:  response.PostID,
-			BodyJA:  response.BodyJA,
+			ID:      comment.ID,
+			PostID:  comment.PostID,
+			BodyJA:  comment.BodyJA,
 		})
 		if err != nil {
 			log.Printf("%+v\n", err)
 			return ResponseError(http.StatusInternalServerError, ErrorCouldNotPutItem)
 		}
 
-		return ResponseJson(http.StatusOK, response)
+		return ResponseJson(http.StatusOK, comment)
 	}
 
 	// else error
@@ -82,9 +67,7 @@ func TranslateComment(req events.APIGatewayProxyRequest) (*events.APIGatewayProx
 		return ResponseError(500, ErrorFailedToFetch)
 	}
 
-	response.ID = commentInfo.ID
-	response.PostID = commentInfo.PostID
-	response.BodyJA = commentInfo.BodyJA
+	comment.BodyJA = commentInfo.BodyJA
 
-	return ResponseJson(http.StatusOK, response)
+	return ResponseJson(http.StatusOK, comment)
 }

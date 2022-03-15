@@ -3,6 +3,7 @@ package applications
 import (
 	"encoding/json"
 	"github.com/aws/aws-lambda-go/events"
+	"github.com/dasuken/wizards-client/api/pkg/domain"
 	"github.com/dasuken/wizards-client/api/pkg/infra/persistence"
 	"github.com/dasuken/wizards-client/api/pkg/infra/translator"
 	"log"
@@ -10,21 +11,9 @@ import (
 	"os"
 )
 
-type RequestTranslatePost struct {
-	ID    string `json:"id"`
-	Body  string `json:"body"`
-	Title string `json:"title"`
-}
-
-type ResponseTranslatePost struct {
-	ID      string `json:"id"`
-	BodyJA  string `json:"body_ja"`
-	TitleJA string `json:"title_ja"`
-}
-
 func TranslatePost(req events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
-	var request RequestTranslatePost
-	if err := json.Unmarshal([]byte(req.Body), &request); err != nil {
+	var post *domain.Post
+	if err := json.Unmarshal([]byte(req.Body), &post); err != nil {
 		log.Printf("%+v\n", err)
 		return ResponseError(404, ErrorFailedToUnmarshal)
 	}
@@ -39,8 +28,7 @@ func TranslatePost(req events.APIGatewayProxyRequest) (*events.APIGatewayProxyRe
 		return ResponseError(500, ErrorCouldNotConnectDB)
 	}
 
-	var response ResponseTranslatePost
-	postInfo, err := postTable.GetByID(request.ID)
+	postInfo, err := postTable.GetByID(post.ID)
 	if err != nil  {
 		log.Printf("%+v\n", err)
 		return ResponseError(http.StatusInternalServerError, ErrorFailedToFetch)
@@ -52,36 +40,33 @@ func TranslatePost(req events.APIGatewayProxyRequest) (*events.APIGatewayProxyRe
 		//trs := translator.New(translator.DefaultAwsClient)
 		trs_deepl := translator.New(translator.DefaultDeepLClient)
 
-		response.ID = request.ID
 		// タイトルだけはdeeplで
-		response.TitleJA, err = trs_deepl.Do(request.Title)
+		post.TitleJA, err = trs_deepl.Do(post.Title)
 		if err != nil {
 			log.Printf("%+v\n", err)
 		}
 		// to save cost
-		if len(request.Body) < 1000 {
-			response.BodyJA, err = trs_deepl.Do(request.Body)
+		if len(post.Body) < 1000 {
+			post.BodyJA, err = trs_deepl.Do(post.Body)
 			if err != nil {
 				log.Printf("%+v\n", err)
 			}
 		}
 
 		err = postTable.PutOne(&persistence.PostJAInfo{
-			ID:      response.ID,
-			BodyJA:  response.BodyJA,
-			TitleJA: response.TitleJA,
+			ID:      post.ID,
+			BodyJA:  post.BodyJA,
+			TitleJA: post.TitleJA,
 		})
 		if err != nil {
 			log.Printf("%+v\n", err)
 			return ResponseError(http.StatusInternalServerError, ErrorCouldNotPutItem)
 		}
 
-		return ResponseJson(http.StatusOK, response)
+		return ResponseJson(http.StatusOK, post)
 	}
 
-	response.ID = postInfo.ID
-	response.TitleJA = postInfo.TitleJA
-	response.BodyJA = postInfo.BodyJA
+	post.BodyJA = postInfo.BodyJA
 
-	return ResponseJson(http.StatusOK, response)
+	return ResponseJson(http.StatusOK, post)
 }
