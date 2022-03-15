@@ -2,14 +2,14 @@ package applications
 
 import (
 	"github.com/aws/aws-lambda-go/events"
-	"github.com/dasuken/wizards-client/api/pkg/domain"
+	"github.com/dasuken/wizards-client/api/pkg/infra/reddit"
 	"github.com/dasuken/wizards-client/api/pkg/utils"
 	"net/http"
 )
 
 var (
-	ErrorInvalidLimit = "invalid limit"
-	ErrorInvalidPostID = "invalid postID"
+	ErrorInvalidLimit     = "invalid limit"
+	ErrorInvalidPostID    = "invalid postID"
 	ErrorInvalidSubreddit = "invalid subreddit"
 )
 
@@ -26,7 +26,7 @@ func FetchPosts(req events.APIGatewayProxyRequest) (*events.APIGatewayProxyRespo
 		return ResponseError(http.StatusBadRequest, ErrorInvalidLimit)
 	}
 
-	posts, err := domain.FetchAll(subreddit, domain.Option{Limit: limitNum})
+	posts, err := reddit.FetchPostList(subreddit, reddit.Option{Limit: limitNum})
 	if err != nil {
 		return ResponseError(http.StatusBadRequest, err.Error())
 	}
@@ -40,11 +40,10 @@ func FetchPostComments(req events.APIGatewayProxyRequest) (*events.APIGatewayPro
 		return ResponseError(http.StatusBadRequest, ErrorInvalidPostID)
 	}
 
-	postComments, err := domain.FetchOne(postID)
+	postComments, err := reddit.FetchPostAndCommentsByID(postID)
 	if err != nil {
 		return ResponseError(http.StatusBadRequest, err.Error())
 	}
 
 	return ResponseJson(http.StatusOK, postComments)
 }
-
