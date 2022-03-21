@@ -12,7 +12,7 @@ import (
 )
 
 func TranslatePost(req events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
-	var post *domain.Post
+	var post domain.Post
 	if err := json.Unmarshal([]byte(req.Body), &post); err != nil {
 		log.Printf("%+v\n", err)
 		return ResponseError(404, ErrorFailedToUnmarshal)
@@ -66,6 +66,7 @@ func TranslatePost(req events.APIGatewayProxyRequest) (*events.APIGatewayProxyRe
 		return ResponseJson(http.StatusOK, post)
 	}
 
+	post.TitleJA = postInfo.TitleJA
 	post.BodyJA = postInfo.BodyJA
 
 	return ResponseJson(http.StatusOK, post)
