@@ -24,9 +24,9 @@ custom:
       test:
         sources:
           - table: translate_posts_test
-            sources: [./post.json]
+            sources: [./testdata/post.json]
           - table: translate_comments_test
-            sources: [./comment.json]
+            sources: [./testdata/comment.json]
 
 provider:
   name: aws
